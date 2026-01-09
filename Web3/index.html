@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kinmen Kaoliang RWA | Aged Liquor Trading</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <style>
+        /* Custom Theme Colors */
+        :root {
+            --kaoliang-red: #8B1E1E;
+            --kaoliang-gold: #D4AF37;
+            --barrel-wood: #5D4037;
+        }
+        .bg-brand-red { background-color: var(--kaoliang-red); }
+        .text-brand-gold { color: var(--kaoliang-gold); }
+        .border-brand-gold { border-color: var(--kaoliang-gold); }
+        .btn-gold {
+            background: linear-gradient(135deg, #D4AF37 0%, #AA8C2C 100%);
+            color: white;
+            transition: all 0.3s ease;
+        }
+        .btn-gold:hover { transform: translateY(-2px); shadow: lg; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans text-gray-800">
+
+    <!-- Navigation -->
+    <nav class="bg-brand-red text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center space-x-3">
+                    <span class="text-2xl">🍶</span>
+                    <h1 class="text-xl font-bold tracking-wider">KINMEN KAOLIANG <span class="text-brand-gold text-sm font-light">RWA PLATFORM</span></h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="roleBadge" class="hidden px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-gray-800 text-gray-300">Guest</span>
+                    <button id="connectBtn" onclick="connectWallet()" class="btn-gold px-6 py-2 rounded-full font-semibold shadow-md text-sm">
+                        Connect Wallet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
+        
+        <!-- Hero Section -->
+        <div class="text-center py-10">
+            <h2 class="text-4xl font-bold text-gray-900 mb-4">Invest in Time. Trade the Aroma.</h2>
+            <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+                Securely own, trade, and age Kinmen Kaoliang liquor barrels on the blockchain. 
+                Experience value appreciation as your asset ages in real-time.
+            </p>
+        </div>
+
+        <!-- Connection Warning -->
+        <div id="connectionWarning" class="hidden bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded shadow" role="alert">
+            <p class="font-bold">Wallet Not Connected</p>
+            <p>Please connect your wallet to access the platform features.</p>
+        </div>
+
+        <!-- Admin Dashboard (Hidden by default) -->
+        <div id="adminPanel" class="hidden animate-fade-in">
+            <div class="glass-panel rounded-xl shadow-xl overflow-hidden">
+                <div class="bg-gray-900 px-6 py-4 border-b border-gray-700 flex justify-between items-center">
+                    <h3 class="text-xl font-bold text-white flex items-center">
+                        <span class="text-brand-gold mr-2">⚙️</span> Distillery Management (Admin)
+                    </h3>
+                    <span class="text-xs text-gray-400">Restricted Access</span>
+                </div>
+                <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Mint Form -->
+                    <div class="space-y-4">
+                        <h4 class="font-bold text-lg border-b pb-2">Mint New Barrel (RWA On-boarding)</h4>
+                        <input type="text" id="mintTo" placeholder="Recipient Address (0x...)" class="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-yellow-500 outline-none">
+                        <input type="text" id="batchNo" placeholder="Batch Number (e.g. KKL-2026-A)" class="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-yellow-500 outline-none">
+                        <input type="text" id="location" placeholder="Warehouse Location (e.g. Tunnel B)" class="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-yellow-500 outline-none">
+                        <input type="number" id="volume" placeholder="Volume (Liters)" class="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-yellow-500 outline-none">
+                        <button onclick="mintBarrel()" class="w-full bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition">
+                            Mint Asset
+                        </button>
+                    </div>
+                    <!-- VIP Management -->
+                    <div class="space-y-4 border-l pl-0 md:pl-8 border-gray-200">
+                        <h4 class="font-bold text-lg border-b pb-2">System Configuration</h4>
+                        <div class="bg-gray-50 p-4 rounded text-sm text-gray-600 mb-4">
+                            <p><strong>Current Block:</strong> <span id="blockNumber">Loading...</span></p>
+                            <p><strong>Contract Status:</strong> <span class="text-green-600 font-bold">Active</span></p>
+                        </div>
+                        <input type="text" id="vipAddress" placeholder="User Address to Promote" class="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-yellow-500 outline-none">
+                        <button onclick="grantVIP()" class="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded transition">
+                            Grant VIP Status
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Assets Section -->
+        <div id="userPanel" class="hidden">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                <span class="mr-2">🍷</span> Your Cellar
+            </h3>
+            
+            <div id="loadingAssets" class="text-center py-10 text-gray-500">
+                Loading assets from blockchain...
+            </div>
+
+            <div id="assetGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Assets will be injected here via JS -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden text-center py-12 bg-white rounded-xl shadow-sm border border-dashed border-gray-300">
+                <p class="text-gray-500 text-lg">You don't own any Kaoliang Barrels yet.</p>
+                <p class="text-sm text-gray-400 mt-2">Wait for the next distillery release.</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-gray-400 py-8 mt-12">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p>&copy; 2026 Kinmen Kaoliang RWA Platform. Built with Web3 Technology.</p>
+            <p class="text-xs mt-2 text-gray-600">Smart Contract Address: <span id="footerAddress" class="font-mono">Not Connected</span></p>
+        </div>
+    </footer>
+
+    <!-- Web3 Logic -->
+    <script>
+        // --- CONFIGURATION ---
+        // REPLACE THIS WITH YOUR DEPLOYED CONTRACT ADDRESS
+        const CONTRACT_ADDRESS = "0x5e454F27C402b6694fB86d564B596bEd5EF10b08"; 
+        
+        // Simplified ABI containing only functions we need
+        const CONTRACT_ABI = [
+            "function hasRole(bytes32 role, address account) public view returns (bool)",
+            "function mintBarrel(address to, string memory uri, string memory batchNumber, string memory warehouseLocation, uint256 literVolume) public",
+            "function balanceOf(address owner) view returns (uint256)",
+            "function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)", // Note: Requires ERC721Enumerable or custom fetch logic. 
+            // *Correction*: Standard ERC721 doesn't have tokenOfOwnerByIndex by default without Enumerable. 
+            // For this demo, we will use a loop over IDs or a simplified fetch if Enumerable isn't imported. 
+            // To make the Solidity code provided earlier compatible with simple frontend logic, we'll iterate IDs (simplified) or assume Enumerable.
+            // *Update*: To keep Solidity simple/standard, we will fetch barrel details by ID. 
+            // For the demo, we will fetch IDs 0 to 10 to see if user owns them (Simplification for hackathon/demo).
+            "function ownerOf(uint256 tokenId) view returns (address)",
+            "function barrels(uint256 tokenId) view returns (uint256 id, string batchNumber, uint256 distillationDate, string warehouseLocation, uint256 literVolume, bool isCellared)",
+            "function getLiquorAge(uint256 tokenId) view returns (uint256)",
+            "function enterCellar(uint256 tokenId) public",
+            "function exitCellar(uint256 tokenId) public",
+            "function addVIP(address user) public"
+        ];
+
+        // Roles Hashes (Keccak256)
+        const ADMIN_ROLE = "0x0000000000000000000000000000000000000000000000000000000000000000";
+        const VIP_ROLE = "0xb2142e0545f49d211df01056580572F3C0123567432890654032654308560321"; // Pre-calc if needed, or fetch dynamically
+
+        let provider, signer, contract, userAddress;
+
+        // --- CORE FUNCTIONS ---
+
+        async function connectWallet() {
+            if (window.ethereum) {
+                try {
+                    provider = new ethers.BrowserProvider(window.ethereum);
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    signer = await provider.getSigner();
+                    userAddress = await signer.getAddress();
+                    
+                    // Update UI
+                    document.getElementById('connectBtn').textContent = userAddress.substring(0,6) + "..." + userAddress.substring(38);
+                    document.getElementById('connectionWarning').classList.add('hidden');
+                    document.getElementById('footerAddress').textContent = CONTRACT_ADDRESS;
+                    
+                    initContract();
+                } catch (error) {
+                    console.error(error);
+                    alert("Connection failed!");
+                }
+            } else {
+                alert("Please install MetaMask!");
+            }
+        }
+
+        async function initContract() {
+            if (!CONTRACT_ADDRESS || CONTRACT_ADDRESS === "0xYourContractAddressHere") {
+                alert("Please update the CONTRACT_ADDRESS in the HTML code with your deployed contract address.");
+                return;
+            }
+
+            contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+            
+            // 1. Check Roles
+            await checkRoles();
+            
+            // 2. Load Data
+            loadUserAssets();
+            updateSystemInfo();
+        }
+
+        async function checkRoles() {
+            try {
+                // Check Admin
+                const isAdmin = await contract.hasRole(ADMIN_ROLE, userAddress);
+                const roleBadge = document.getElementById('roleBadge');
+                
+                // Show Admin Panel
+                if (isAdmin) {
+                    document.getElementById('adminPanel').classList.remove('hidden');
+                    roleBadge.textContent = "Administrator";
+                    roleBadge.classList.remove('hidden', 'bg-gray-800', 'text-gray-300');
+                    roleBadge.classList.add('bg-red-800', 'text-white');
+                } else {
+                    // Check VIP (Simplified logic: assuming we computed the hash correctly or just default to User)
+                    roleBadge.textContent = "Investor";
+                    roleBadge.classList.remove('hidden');
+                    roleBadge.classList.add('bg-green-600', 'text-white');
+                }
+                
+                document.getElementById('userPanel').classList.remove('hidden');
+            } catch (err) {
+                console.log("Error checking roles:", err);
+            }
+        }
+
+        async function loadUserAssets() {
+            const grid = document.getElementById('assetGrid');
+            grid.innerHTML = "";
+            document.getElementById('loadingAssets').classList.remove('hidden');
+
+            try {
+                // In a production app, we would use The Graph or ERC721Enumerable.
+                // Here, we scan the first 10 IDs for demo purposes to find owned assets.
+                let foundAssets = false;
+
+                for (let i = 0; i < 10; i++) {
+                    try {
+                        const owner = await contract.ownerOf(i);
+                        if (owner.toLowerCase() === userAddress.toLowerCase()) {
+                            const barrelData = await contract.barrels(i);
+                            const age = await contract.getLiquorAge(i);
+                            createAssetCard(i, barrelData, age);
+                            foundAssets = true;
+                        }
+                    } catch (e) {
+                        // Token ID likely doesn't exist yet, stop loop
+                        break;
+                    }
+                }
+
+                document.getElementById('loadingAssets').classList.add('hidden');
+                if (!foundAssets) {
+                    document.getElementById('emptyState').classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error("Error loading assets:", err);
+                document.getElementById('loadingAssets').innerText = "Error loading assets. Check console.";
+            }
+        }
+
+        function createAssetCard(id, data, age) {
+            const grid = document.getElementById('assetGrid');
+            
+            // Calculate Value (Mock logic: Base $1000 + $10 per day of aging)
+            const estimatedValue = 1000 + (Number(age) * 10);
+            
+            const isStaked = data.isCellared;
+            const statusColor = isStaked ? "text-purple-600" : "text-green-600";
+            const statusText = isStaked ? "🔒 Cellared (Aging)" : "🔓 Ready to Trade";
+            
+            const btnAction = isStaked 
+                ? `<button onclick="toggleCellar(${id}, false)" class="w-full mt-4 border border-purple-600 text-purple-600 hover:bg-purple-50 font-bold py-2 rounded transition">Unstake (Retrieve)</button>`
+                : `<button onclick="toggleCellar(${id}, true)" class="w-full mt-4 bg-brand-red hover:bg-red-900 text-white font-bold py-2 rounded transition">Enter Cellar (Stake)</button>`;
+
+            const card = document.createElement('div');
+            card.className = "bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-2xl transition duration-300";
+            card.innerHTML = `
+                <div class="h-32 bg-gradient-to-r from-yellow-700 to-yellow-900 flex items-center justify-center">
+                    <span class="text-6xl">🛢️</span>
+                </div>
+                <div class="p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h5 class="text-lg font-bold text-gray-800">Batch: ${data.batchNumber}</h5>
+                            <p class="text-xs text-gray-500">Vol: ${data.literVolume}L | Loc: ${data.warehouseLocation}</p>
+                        </div>
+                        <span class="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-yellow-200">#${id}</span>
+                    </div>
+                    
+                    <div class="mt-4 space-y-2">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Liquor Age:</span>
+                            <span class="font-bold text-gray-900">${age} Days</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Est. Value:</span>
+                            <span class="font-bold text-green-600">$${estimatedValue.toLocaleString()}</span>
+                        </div>
+                        <div class="flex justify-between text-sm pt-2 border-t">
+                            <span class="text-gray-600">Status:</span>
+                            <span class="font-bold ${statusColor}">${statusText}</span>
+                        </div>
+                    </div>
+
+                    ${btnAction}
+                </div>
+            `;
+            grid.appendChild(card);
+        }
+
+        // --- ACTIONS ---
+
+        async function mintBarrel() {
+            try {
+                const to = document.getElementById('mintTo').value;
+                const batch = document.getElementById('batchNo').value;
+                const loc = document.getElementById('location').value;
+                const vol = document.getElementById('volume').value;
+                
+                // Placeholder URI for metadata
+                const uri = "ipfs://QmPlaceholder"; 
+
+                const tx = await contract.mintBarrel(to, uri, batch, loc, vol);
+                alert("Transaction Sent! Waiting for confirmation...");
+                await tx.wait();
+                alert("Mint Successful!");
+                loadUserAssets(); // Refresh
+            } catch (err) {
+                console.error(err);
+                alert("Minting Failed: " + (err.reason || err.message));
+            }
+        }
+
+        async function grantVIP() {
+            try {
+                const addr = document.getElementById('vipAddress').value;
+                const tx = await contract.addVIP(addr);
+                await tx.wait();
+                alert("VIP Role Granted!");
+            } catch (err) {
+                alert("Failed: " + err.message);
+            }
+        }
+
+        async function toggleCellar(id, enter) {
+            try {
+                let tx;
+                if (enter) {
+                    tx = await contract.enterCellar(id);
+                } else {
+                    tx = await contract.exitCellar(id);
+                }
+                alert("Processing transaction...");
+                await tx.wait();
+                alert(enter ? "Barrel safely cellared!" : "Barrel retrieved from cellar!");
+                loadUserAssets();
+            } catch (err) {
+                console.error(err);
+                alert("Operation failed: " + (err.reason || err.message));
+            }
+        }
+
+        async function updateSystemInfo() {
+            const num = await provider.getBlockNumber();
+            document.getElementById('blockNumber').textContent = num;
+        }
+
+    </script>
+</body>
+</html>
