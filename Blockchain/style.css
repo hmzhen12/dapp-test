@@ -1,0 +1,27 @@
+body {
+  background: #f5f6f8;
+  font-family: sans-serif;
+}
+
+.card {
+  width: 360px;
+  margin: 80px auto;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  font-size: 16px;
+}
+
+pre {
+  background: #0b1220;
+  color: #00ff99;
+  padding: 10px;
+  margin-top: 15px;
+}

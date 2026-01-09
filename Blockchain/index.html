@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <title>區塊鏈紅包</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="card">
+  <h2>🧧 區塊鏈紅包</h2>
+  <p>合約地址: <span id="contract"></span></p>
+
+  <div class="info">
+    <p>連線狀態: <span id="status">未連線</span></p>
+    <p>帳戶地址: <span id="account">n/a</span></p>
+    <p>目前餘額: <span id="balance">-- ETH</span></p>
+  </div>
+
+  <button onclick="connect()">1. 連接 MetaMask</button>
+  <button onclick="claim()">2. 立即搶紅包！</button>
+
+  <pre id="log">> 系統準備就緒...</pre>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.min.js"></script>
+<script src="abi.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
